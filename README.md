@@ -33,10 +33,10 @@ En vercel.com: **Add New Project** > importar `Nexus-Operativo` > agregar las va
 
 ## Conectar el backend (Google Apps Script)
 
-1. Crea un **Google Sheets** llamado `Nexus_Datos` con las hojas y columnas del documento de arquitectura (`docs/arquitectura-cgo.md`). Minimo para empezar: `Usuarios` y `Politicas`.
+1. Abre el Google Sheets `Nexus_Datos` (ya creado en tu Drive).
 2. Extensiones > Apps Script > pega los archivos de la carpeta `/gas`.
 3. En Apps Script: Configuracion del proyecto > Propiedades del script > agrega `GAS_API_KEY`, `PEPPER`, `REVALIDATE_SECRET`, `VERCEL_REVALIDATE_URL`.
-4. Ejecuta una vez `Util_crearAdmin()` (edita antes correo y clave) para crear el primer usuario.
+4. Ejecuta una vez `Setup_crearEstructura()` (crea las 17 hojas con datos semilla) y luego `Util_crearAdmin()` (edita antes correo y clave).
 5. Implementar > Nueva implementacion > **Aplicacion web** (ejecutar como: yo / acceso: cualquier persona) > copia la URL.
 6. En Vercel agrega `GAS_URL` con esa URL y el mismo `GAS_API_KEY` y `REVALIDATE_SECRET`. Redeploy.
 7. Activadores > anade `onEditInstalable` al evento "Al editar": los cambios del Sheet se reflejan solos en la web.

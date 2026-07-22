@@ -2,12 +2,10 @@ import { notFound } from "next/navigation";
 import { moduleGroups } from "@/lib/mock-data";
 import { Card } from "@/components/ui";
 import { ModuleTabs } from "@/components/module-tabs";
-import { Building2, Users, Landmark } from "lucide-react";
+import { Building2 } from "lucide-react";
 
 const groupIcons: Record<string, typeof Building2> = {
   operaciones: Building2,
-  rrhh: Users,
-  administracion: Landmark,
 };
 
 export function generateStaticParams() {

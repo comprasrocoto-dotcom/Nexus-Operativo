@@ -16,7 +16,6 @@ import {
   Building2,
   Users,
   Landmark,
-  ChefHat,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -37,7 +36,6 @@ const groupIcons: Record<string, typeof Building2> = {
   operaciones: Building2,
   rrhh: Users,
   administracion: Landmark,
-  cocina: ChefHat,
 };
 
 export function Sidebar() {

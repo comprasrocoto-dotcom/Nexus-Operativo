@@ -20,7 +20,6 @@ import {
   Building2,
   Users,
   Landmark,
-  ChefHat,
   ArrowRight,
 } from "lucide-react";
 import { Card, Badge, Input } from "@/components/ui";
@@ -46,7 +45,6 @@ const groupIcons: Record<string, typeof Building2> = {
   operaciones: Building2,
   rrhh: Users,
   administracion: Landmark,
-  cocina: ChefHat,
 };
 
 const statusVariant: Record<string, "success" | "warning" | "danger"> = {

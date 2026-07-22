@@ -14,9 +14,7 @@ import {
   HelpCircle,
   ChevronDown,
   Building2,
-  Users,
-  Landmark,
-  Sparkles,
+    Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { moduleGroups } from "@/lib/mock-data";
@@ -34,8 +32,6 @@ const mainNav = [
 
 const groupIcons: Record<string, typeof Building2> = {
   operaciones: Building2,
-  rrhh: Users,
-  administracion: Landmark,
 };
 
 export function Sidebar() {

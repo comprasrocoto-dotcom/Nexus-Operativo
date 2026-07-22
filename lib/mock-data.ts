@@ -70,17 +70,7 @@ export const moduleGroups: ModuleGroup[] = [
           { slug: "cartera", name: "Cartera", description: "Gestion de cuentas por cobrar.", color: "red", docCount: 6, lastUpdate: "hace 1 semana", owner: "Ricardo Nieto", submodules: ["Cobranza"] },
               ],
   },
-  {
-        key: "cocina",
-        name: "Cocina",
-        icon: "ChefHat",
-        modules: [
-          { slug: "recetas", name: "Recetas", description: "Estandarizacion de recetas y porciones.", color: "orange", docCount: 46, lastUpdate: "hoy", owner: "Chef Mario Duarte", submodules: ["Entradas", "Fuertes", "Postres"] },
-          { slug: "produccion", name: "Produccion", description: "Planeacion de produccion diaria de cocina.", color: "blue", docCount: 10, lastUpdate: "ayer", owner: "Chef Mario Duarte", submodules: ["Mise en place"] },
-          { slug: "bpm", name: "BPM", description: "Buenas practicas de manufactura en cocina.", color: "green", docCount: 13, lastUpdate: "hace 2 dias", owner: "Marcela Ibanez", submodules: ["Higiene", "Manejo de alimentos"] },
-              ],
-  },
-  ];
+];
 
 export interface RecentDocument {
     id: string;
@@ -95,8 +85,6 @@ export interface RecentDocument {
 export const recentDocuments: RecentDocument[] = [
   { id: "doc-1", title: "Politica de manejo de inventarios", area: "Inventarios", status: "Vigente", updatedAt: "hoy", views: 342, responsible: "Ana Ruiz" },
   { id: "doc-2", title: "Procedimiento de recepcion de mercancia", area: "Compras", status: "En revision", updatedAt: "ayer", views: 210, responsible: "Carlos Perez" },
-  { id: "doc-3", title: "Manual de BPM en cocina", area: "BPM", status: "Vigente", updatedAt: "hace 2 dias", views: 501, responsible: "Marcela Ibanez" },
-  { id: "doc-4", title: "Receta estandar: Salsa bechamel", area: "Recetas", status: "Vigente", updatedAt: "hace 2 dias", views: 189, responsible: "Chef Mario Duarte" },
   { id: "doc-5", title: "Politica de cartera y cobranza", area: "Cartera", status: "Obsoleto", updatedAt: "hace 3 semanas", views: 64, responsible: "Ricardo Nieto" },
   ];
 

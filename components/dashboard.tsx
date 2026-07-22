@@ -18,8 +18,6 @@ import {
   Eye,
   History,
   Building2,
-  Users,
-  Landmark,
   ArrowRight,
 } from "lucide-react";
 import { Card, Badge, Input } from "@/components/ui";
@@ -43,9 +41,7 @@ const indicatorIcons: Record<string, typeof BookOpen> = {
 
 const groupIcons: Record<string, typeof Building2> = {
   operaciones: Building2,
-  rrhh: Users,
-  administracion: Landmark,
-};
+  };
 
 const statusVariant: Record<string, "success" | "warning" | "danger"> = {
   Vigente: "success",
@@ -85,7 +81,7 @@ export function Dashboard() {
         <div className="relative mt-6">
           <Search className="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
           <Input
-            placeholder="Buscar politicas, procedimientos, manuales, videos, recetas..."
+          placeholder="Buscar politicas, procedimientos, manuales, videos, formatos..."
             className="h-16 rounded-2xl pl-14 pr-4 text-base shadow-soft-lg"
           />
         </div>

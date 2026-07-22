@@ -50,27 +50,7 @@ export const moduleGroups: ModuleGroup[] = [
           { slug: "auditorias", name: "Auditorias", description: "Planes de auditoria interna y externa.", color: "red", docCount: 7, lastUpdate: "hace 2 semanas", owner: "Julian Torres", submodules: ["Checklist", "Hallazgos"] },
               ],
   },
-  {
-        key: "rrhh",
-        name: "Recursos Humanos",
-        icon: "Users",
-        modules: [
-          { slug: "manual-empleado", name: "Manual del empleado", description: "Normas, beneficios y cultura organizacional.", color: "blue", docCount: 6, lastUpdate: "hace 1 mes", owner: "Sofia Ramirez", submodules: ["Reglamento interno"] },
-          { slug: "capacitacion", name: "Capacitacion", description: "Programas de formacion y desarrollo del talento.", color: "orange", docCount: 11, lastUpdate: "hace 4 dias", owner: "Sofia Ramirez", submodules: ["Cronograma", "Evaluaciones"] },
-          { slug: "induccion", name: "Induccion", description: "Proceso de bienvenida para nuevos colaboradores.", color: "green", docCount: 5, lastUpdate: "hace 6 dias", owner: "Sofia Ramirez", submodules: ["Checklist de ingreso"] },
-              ],
-  },
-  {
-        key: "administracion",
-        name: "Administracion",
-        icon: "Landmark",
-        modules: [
-          { slug: "contabilidad", name: "Contabilidad", description: "Procesos contables y cierre financiero.", color: "purple", docCount: 14, lastUpdate: "hace 2 dias", owner: "Ricardo Nieto", submodules: ["Cierres mensuales"] },
-          { slug: "tesoreria", name: "Tesoreria", description: "Gestion de flujo de caja y pagos.", color: "teal", docCount: 8, lastUpdate: "hace 3 dias", owner: "Ricardo Nieto", submodules: ["Pagos a proveedores"] },
-          { slug: "cartera", name: "Cartera", description: "Gestion de cuentas por cobrar.", color: "red", docCount: 6, lastUpdate: "hace 1 semana", owner: "Ricardo Nieto", submodules: ["Cobranza"] },
-              ],
-  },
-];
+  ];
 
 export interface RecentDocument {
     id: string;
@@ -85,8 +65,7 @@ export interface RecentDocument {
 export const recentDocuments: RecentDocument[] = [
   { id: "doc-1", title: "Politica de manejo de inventarios", area: "Inventarios", status: "Vigente", updatedAt: "hoy", views: 342, responsible: "Ana Ruiz" },
   { id: "doc-2", title: "Procedimiento de recepcion de mercancia", area: "Compras", status: "En revision", updatedAt: "ayer", views: 210, responsible: "Carlos Perez" },
-  { id: "doc-5", title: "Politica de cartera y cobranza", area: "Cartera", status: "Obsoleto", updatedAt: "hace 3 semanas", views: 64, responsible: "Ricardo Nieto" },
-  ];
+];
 
 export const mostViewedDocuments = [...recentDocuments].sort((a, b) => b.views - a.views);
 

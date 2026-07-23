@@ -59,3 +59,62 @@ export async function fetchPoliticas(): Promise<PoliticasResponse> {
     return { ok: false, data: [], error: String(err) };
   }
 }
+
+
+// ─── Escritura de documentos (conecta con Documentos_crear/actualizar/eliminar del backend GAS) ───
+export type DocumentoInput = {
+    titulo: string;
+    tipo: string;
+    area: string;
+    categoria?: string;
+    subcategoria?: string;
+    responsable?: string;
+    version?: number;
+    estado?: string;
+    etiquetas?: string[];
+    descripcion?: string;
+    contenido?: string;
+};
+
+type MutacionResponse = { ok: boolean; data?: unknown; error?: string };
+
+async function mutarDocumento(
+    metodo: "POST" | "PUT" | "DELETE",
+    payload: Record<string, unknown>
+  ): Promise<MutacionResponse> {
+    const execUrl = process.env.GAS_EXEC_URL;
+    const apiKey = process.env.GAS_API_KEY;
+    if (!execUrl || !apiKey) return { ok: false, error: "Backend no configurado" };
+
+  try {
+        const res = await fetch(execUrl, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({
+                          recurso: "documentos",
+                          _method: metodo,
+                          apiKey,
+                          token: "nexus-server-interno",
+                          ...payload,
+                }),
+                cache: "no-store",
+        });
+        const json = await res.json();
+        if (!json.ok) {
+                const msg = typeof json.error === "object" ? json.error?.mensaje : json.error;
+                return { ok: false, error: msg || "Error desconocido" };
+        }
+        return { ok: true, data: json.data };
+  } catch (err) {
+        return { ok: false, error: String(err) };
+  }
+}
+
+export const crearDocumento = (doc: DocumentoInput) =>
+    mutarDocumento("POST", doc as unknown as Record<string, unknown>);
+
+export const actualizarDocumento = (id: string, doc: Partial<DocumentoInput>) =>
+    mutarDocumento("PUT", { id, ...doc });
+
+export const eliminarDocumento = (id: string) =>
+    mutarDocumento("DELETE", { id });

@@ -1,49 +1,80 @@
 // lib/operaciones.ts — Conector del Centro de Operaciones (Grupo DASHI S.A.S.)
 // Sigue el mismo patrón que lib/gas.ts: POST al backend GAS con recurso + _method.
 // El backend (Código.gs) lee la petición como { recurso, _method, apiKey, token,
-// payload, filtros, usuario }, por eso aquí anidamos los datos en esas claves.
+// payload, filtros, usuario } y todas las tablas siguen la estructura ERP estándar:
+// ID, Codigo, Nombre, Descripcion, Estado, Responsable, FechaCreacion,
+// FechaModificacion, UsuarioCreador, UltimoEditor, Activo (+ campos propios).
 
 const TOKEN = "nexus-server-interno";
 
-// ─── Tipos ───
-export type Sede = {
-  id: string;
-  nombre: string;
-  codigo?: string;
-  direccion?: string;
-  responsable?: string;
-  telefono?: string;
-  activa?: boolean;
+// ─── Campos base estándar (comunes a todos los módulos ERP) ───
+export type BaseEntidad = {
+  ID: string;
+  Codigo?: string;
+  Nombre: string;
+  Descripcion?: string;
+  Estado?: string;
+  Responsable?: string;
+  FechaCreacion?: string;
+  FechaModificacion?: string;
+  UsuarioCreador?: string;
+  UltimoEditor?: string;
+  Activo?: boolean;
+};
+
+// ─── Sede (ficha completa) ───
+export type Sede = BaseEntidad & {
+  Direccion?: string;
+  Telefono?: string;
+  Administrador?: string;
+  totalActividades?: number;
 };
 
 export type SedeInput = {
   nombre: string;
   codigo?: string;
-  direccion?: string;
+  descripcion?: string;
+  estado?: string;
   responsable?: string;
+  activo?: boolean;
+  direccion?: string;
   telefono?: string;
-  activa?: boolean;
+  administrador?: string;
 };
 
-export type Actividad = {
-  id: string;
+// ─── Actividad ───
+export type Actividad = BaseEntidad & {
+  Tipo?: string;
+  Area?: string;
+  Sedes?: string;
+  Fecha?: string;
+  HoraInicio?: string;
+  HoraFin?: string;
+  Prioridad?: string;
+  Observaciones?: string;
+  Repeticion?: string;
+  Recordatorio?: string;
+  RutaDrive?: string;
+};
+
+export type ActividadInput = {
   nombre: string;
+  codigo?: string;
   descripcion?: string;
-  tipo: string;
-  area?: string;
-  sedes?: string[];
+  estado?: string;
   responsable?: string;
+  activo?: boolean;
+  tipo?: string;
+  area?: string;
+  sedes?: string[] | string;
   fecha?: string;
   horaInicio?: string;
   horaFin?: string;
   prioridad?: string;
-  estado?: string;
   observaciones?: string;
   repeticion?: string;
   recordatorio?: string;
 };
-
-export type ActividadInput = Omit<Actividad, "id"> & { id?: string };
 
 export type Usuario = { nombre?: string; rol?: string };
 
@@ -95,6 +126,7 @@ async function pedir<T = unknown>(
 }
 
 // ─── Sedes ───
+// filtros: { incluirInactivas?: boolean } para ver también las desactivadas.
 export const fetchSedes = (filtros?: Record<string, unknown>) =>
   pedir<Sede[]>("sedes", "GET", { filtros, tags: ["sedes"] });
 
@@ -104,8 +136,12 @@ export const crearSede = (sede: SedeInput, usuario?: Usuario) =>
 export const actualizarSede = (id: string, sede: Partial<SedeInput>, usuario?: Usuario) =>
   pedir<{ id: string }>("sedes", "PUT", { payload: { id, ...sede }, usuario });
 
-export const eliminarSede = (id: string, usuario?: Usuario) =>
+// Desactivar (borrado lógico). Para reactivar usa actualizarSede(id, { activo: true, estado: "Activa" }).
+export const desactivarSede = (id: string, usuario?: Usuario) =>
   pedir("sedes", "DELETE", { payload: { id }, usuario });
+
+export const reactivarSede = (id: string, usuario?: Usuario) =>
+  actualizarSede(id, { activo: true, estado: "Activa" }, usuario);
 
 // ─── Actividades ───
 export const fetchActividades = (filtros?: Record<string, unknown>) =>
@@ -117,5 +153,5 @@ export const crearActividad = (act: ActividadInput, usuario?: Usuario) =>
 export const actualizarActividad = (id: string, act: Partial<ActividadInput>, usuario?: Usuario) =>
   pedir<{ id: string }>("actividades", "PUT", { payload: { id, ...act }, usuario });
 
-export const eliminarActividad = (id: string, usuario?: Usuario) =>
+export const desactivarActividad = (id: string, usuario?: Usuario) =>
   pedir("actividades", "DELETE", { payload: { id }, usuario });

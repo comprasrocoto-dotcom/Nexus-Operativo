@@ -1,5 +1,7 @@
 // lib/operaciones.ts — Conector del Centro de Operaciones (Grupo DASHI S.A.S.)
 // Sigue el mismo patrón que lib/gas.ts: POST al backend GAS con recurso + _method.
+// El backend (Código.gs) lee la petición como { recurso, _method, apiKey, token,
+// payload, filtros, usuario }, por eso aquí anidamos los datos en esas claves.
 
 const TOKEN = "nexus-server-interno";
 
@@ -43,14 +45,21 @@ export type Actividad = {
 
 export type ActividadInput = Omit<Actividad, "id"> & { id?: string };
 
+export type Usuario = { nombre?: string; rol?: string };
+
 type Resp<T> = { ok: boolean; data?: T; error?: string };
 
 // ─── Núcleo de peticiones ───
 async function pedir<T = unknown>(
   recurso: string,
   metodo: "GET" | "POST" | "PUT" | "DELETE",
-  payload: Record<string, unknown> = {},
-  opciones?: { tags?: string[]; revalidate?: number }
+  opts: {
+    payload?: Record<string, unknown>;
+    filtros?: Record<string, unknown>;
+    usuario?: Usuario;
+    tags?: string[];
+    revalidate?: number;
+  } = {}
 ): Promise<Resp<T>> {
   const execUrl = process.env.GAS_EXEC_URL;
   const apiKey = process.env.GAS_API_KEY;
@@ -65,10 +74,12 @@ async function pedir<T = unknown>(
         _method: metodo,
         apiKey,
         token: TOKEN,
-        ...payload,
+        payload: opts.payload ?? {},
+        filtros: opts.filtros ?? {},
+        usuario: opts.usuario ?? {},
       }),
       ...(metodo === "GET"
-        ? { next: { tags: opciones?.tags ?? [recurso], revalidate: opciones?.revalidate ?? 120 } }
+        ? { next: { tags: opts.tags ?? [recurso], revalidate: opts.revalidate ?? 120 } }
         : { cache: "no-store" as const }),
     });
 
@@ -84,27 +95,27 @@ async function pedir<T = unknown>(
 }
 
 // ─── Sedes ───
-export const fetchSedes = () =>
-  pedir<Sede[]>("sedes", "GET", {}, { tags: ["sedes"] });
+export const fetchSedes = (filtros?: Record<string, unknown>) =>
+  pedir<Sede[]>("sedes", "GET", { filtros, tags: ["sedes"] });
 
-export const crearSede = (sede: SedeInput) =>
-  pedir<Sede>("sedes", "POST", sede as unknown as Record<string, unknown>);
+export const crearSede = (sede: SedeInput, usuario?: Usuario) =>
+  pedir<{ id: string }>("sedes", "POST", { payload: sede as unknown as Record<string, unknown>, usuario });
 
-export const actualizarSede = (id: string, sede: Partial<SedeInput>) =>
-  pedir<Sede>("sedes", "PUT", { id, ...sede });
+export const actualizarSede = (id: string, sede: Partial<SedeInput>, usuario?: Usuario) =>
+  pedir<{ id: string }>("sedes", "PUT", { payload: { id, ...sede }, usuario });
 
-export const eliminarSede = (id: string) =>
-  pedir("sedes", "DELETE", { id });
+export const eliminarSede = (id: string, usuario?: Usuario) =>
+  pedir("sedes", "DELETE", { payload: { id }, usuario });
 
 // ─── Actividades ───
-export const fetchActividades = () =>
-  pedir<Actividad[]>("actividades", "GET", {}, { tags: ["actividades"] });
+export const fetchActividades = (filtros?: Record<string, unknown>) =>
+  pedir<Actividad[]>("actividades", "GET", { filtros, tags: ["actividades"] });
 
-export const crearActividad = (act: ActividadInput) =>
-  pedir<Actividad>("actividades", "POST", act as unknown as Record<string, unknown>);
+export const crearActividad = (act: ActividadInput, usuario?: Usuario) =>
+  pedir<{ id: string }>("actividades", "POST", { payload: act as unknown as Record<string, unknown>, usuario });
 
-export const actualizarActividad = (id: string, act: Partial<ActividadInput>) =>
-  pedir<Actividad>("actividades", "PUT", { id, ...act });
+export const actualizarActividad = (id: string, act: Partial<ActividadInput>, usuario?: Usuario) =>
+  pedir<{ id: string }>("actividades", "PUT", { payload: { id, ...act }, usuario });
 
-export const eliminarActividad = (id: string) =>
-  pedir("actividades", "DELETE", { id });
+export const eliminarActividad = (id: string, usuario?: Usuario) =>
+  pedir("actividades", "DELETE", { payload: { id }, usuario });

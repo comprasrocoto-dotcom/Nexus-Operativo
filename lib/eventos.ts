@@ -100,3 +100,12 @@ export const colorClasses: Record<string, { dot: string; ring: string; text: str
 export function claseColorEvento(color?: string) {
   return colorClasses[color ?? "muted"] ?? colorClasses.muted;
 }
+const SUFIJO_ACCION: Record<string, string> = {
+  crear: "CREADO", editar: "ACTUALIZADO", eliminar: "ELIMINADO",
+  activar: "REACTIVADO", desactivar: "DESACTIVADO", publicar: "PUBLICADO",
+};
+export function tipoCanonico(entidad?: string, accion?: string): string {
+  if (!entidad || !accion) return "GENERICO";
+  const candidato = `${entidad.toUpperCase()}_${SUFIJO_ACCION[accion] ?? accion.toUpperCase()}`;
+  return candidato in CATALOGO_EVENTOS ? candidato : "GENERICO";
+}

@@ -15,7 +15,7 @@ interface AgendaProps {
  * el hook useActividadesSede filtra la Agenda Operativa por SedeID.
  */
 export function Agenda({ sedeId, onVerAgenda }: AgendaProps) {
-  const { actividades, loading, error } = useActividadesSede(sedeId);
+  const { actividades, cargando, error } = useActividadesSede(sedeId);
 
   return (
     <Card className="p-5 rounded-2xl shadow-soft">
@@ -35,7 +35,7 @@ export function Agenda({ sedeId, onVerAgenda }: AgendaProps) {
         <div className="mb-3 rounded-xl bg-danger/10 text-danger text-sm px-3 py-2">{error}</div>
       )}
 
-      {loading ? (
+      {cargando ? (
         <div className="space-y-2">
           {[0,1,2].map((i) => <div key={i} className="h-14 rounded-xl bg-slate-100 animate-pulse" />)}
         </div>

@@ -39,7 +39,7 @@ export async function fetchPoliticas(): Promise<PoliticasResponse> {
         recurso: "politicas",
         _method: "GET",
         apiKey,
-        token: "nexus-server-interno",
+        token: process.env.GAS_INTERNAL_TOKEN ?? "",
       }),
       next: { tags: ["politicas"], revalidate: 120 },
     });

@@ -8,7 +8,7 @@ import { useRecurso, useCatalogo } from "@/hooks/useRecurso";
 import { tipoCanonico } from "@/lib/eventos";
 import type { CampoRecurso, DefinicionRecurso } from "@/types/admin";
 
-type Fila = Record<string, unknown>;
+type Fila = { ID: string; [k: string]: unknown };
 
 export type CrudGenericoProps = {
   definicion: DefinicionRecurso;
@@ -24,7 +24,7 @@ export default function CrudGenerico({ definicion, filtros }: CrudGenericoProps)
   const [busqueda, setBusqueda] = useState("");
   const [abierto, setAbierto] = useState(false);
   const [editando, setEditando] = useState<Fila | null>(null);
-  const [form, setForm] = useState<Fila>({});
+  const [form, setForm] = useState<Fila>({} as Fila);
   const [guardando, setGuardando] = useState(false);
 
   const columnas = useMemo(() => campos.filter((c) => c.enTabla !== false), [campos]);
@@ -42,7 +42,7 @@ export default function CrudGenerico({ definicion, filtros }: CrudGenericoProps)
   }, [items, busqueda]);
 
   function abrirCrear() {
-    const inicial: Fila = {};
+    const inicial: Fila = {} as Fila;
     for (const c of camposForm) if (c.valorDefecto !== undefined) inicial[c.clave] = c.valorDefecto;
     setEditando(null);
     setForm(inicial);
@@ -56,7 +56,7 @@ export default function CrudGenerico({ definicion, filtros }: CrudGenericoProps)
   function cerrar() {
     setAbierto(false);
     setEditando(null);
-    setForm({});
+    setForm({} as Fila);
   }
 
   async function guardar() {

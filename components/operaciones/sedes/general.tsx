@@ -7,11 +7,6 @@ import type { Sede, SedeInput } from "@/lib/operaciones";
 import type { ModuloSedeProps } from "@/lib/sede-modulos";
 import { Save, X, Pencil } from "lucide-react";
 
-/**
- * Pestana Informacion General. Recibe el contrato estable ModuloSedeProps ({ sedeId }),
- * obtiene la sede via useSede (toda la logica vive en el hook) y permite editar in-situ.
- */
-
 // Traduce el formulario (claves de Sede, capitalizadas) al contrato SedeInput (camelCase)
 // que espera el backend GAS. Solo incluye los campos definidos para no pisar datos.
 function aSedeInput(form: Partial<Sede>): Partial<SedeInput> {
@@ -72,4 +67,50 @@ export function General({ sedeId }: ModuloSedeProps) {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h3 className="text-lg font-semibold text-slate-800">Informacion General</h3>
-          <p className=
+          <p className="text-sm text-slate-500">Datos base del centro de informacion.</p>
+        </div>
+        {!editando ? (
+          <Button variant="secondary" onClick={() => setEditando(true)} className="gap-1">
+            <Pencil className="h-4 w-4" /> Editar
+          </Button>
+        ) : (
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => { setForm(sede); setEditando(false); }} className="gap-1">
+              <X className="h-4 w-4" /> Cancelar
+            </Button>
+            <Button onClick={guardar} disabled={guardando} className="gap-1">
+              <Save className="h-4 w-4" /> {guardando ? "Guardando..." : "Guardar"}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {campos.map((c) => (
+          <div key={c.clave}>
+            <label className="block text-xs font-medium text-slate-500 mb-1">{c.etiqueta}</label>
+            {editando ? (
+              <Input value={String(form[c.clave] ?? "")} onChange={(e) => set(c.clave, e.target.value)} />
+            ) : (
+              <div className="text-sm text-slate-800 py-2">{String(sede[c.clave] ?? "-")}</div>
+            )}
+          </div>
+        ))}
+        <div>
+          <label className="block text-xs font-medium text-slate-500 mb-1">Estado</label>
+          <div className="py-1"><Badge>{sede.Estado ?? "-"}</Badge></div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-500 mb-1">Fecha creacion</label>
+          <div className="text-sm text-slate-800 py-2">{sede.FechaCreacion ?? "-"}</div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-500 mb-1">Ultima actualizacion</label>
+          <div className="text-sm text-slate-800 py-2">{sede.FechaModificacion ?? "-"}</div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+export default General;

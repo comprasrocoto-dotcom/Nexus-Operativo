@@ -4,7 +4,7 @@
 // Patrón: POST al backend GAS con { recurso, _method, apiKey, token, payload, filtros, usuario }.
 // Diseñado para crecer: agregar un módulo nuevo = registrar su recurso, sin tocar el núcleo.
 
-const TOKEN = "nexus-server-interno";
+const TOKEN = process.env.GAS_INTERNAL_TOKEN ?? "";
 
 // ─── Campos base estándar (comunes a todos los módulos ERP) ───
 export type BaseEntidad = {

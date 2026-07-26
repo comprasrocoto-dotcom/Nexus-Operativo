@@ -94,7 +94,7 @@ async function mutarDocumento(
                           recurso: "documentos",
                           _method: metodo,
                           apiKey,
-                          token: "nexus-server-interno",
+                          token: process.env.GAS_INTERNAL_TOKEN ?? "",
                           ...payload,
                 }),
                 cache: "no-store",

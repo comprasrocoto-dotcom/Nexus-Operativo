@@ -17,7 +17,7 @@ import type { ModuloSedeProps, DefinicionModulo } from "@/lib/sede-modulos";
  */
 
 function Icono({ nombre, className }: { nombre: string; className?: string }) {
-  const Cmp = (Icons as Record<string, ComponentType<{ className?: string }>>)[nombre] ?? Icons.Circle;
+  const Cmp = (Icons as unknown as Record<string, ComponentType<{ className?: string }>>)[nombre] ?? Icons.Circle;
   return <Cmp className={className} />;
 }
 

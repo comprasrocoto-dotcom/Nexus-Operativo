@@ -48,3 +48,5 @@ export interface DataProvider {
           opciones?: OpcionesDatos
         ): Promise<Resp<T>>;
 }
+// ─── Alias oficial de la interfaz (nombre canónico del sistema) ───
+export type IDataProvider = DataProvider;

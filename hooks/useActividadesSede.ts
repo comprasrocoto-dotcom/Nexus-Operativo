@@ -1,11 +1,11 @@
 // hooks/useActividadesSede.ts — Agenda de la sede reutilizando el modelo Actividad.
-// NO duplica el modelo de actividades: consume el mismo recurso /api/operaciones?recurso=actividades
-// filtrado por sedeId. Mañana Agenda Operativa usará el mismo endpoint sin cambios.
+// Enruta por el DataProvider activo: Demo (localStorage) o Gas (API real).
 
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
 import type { Actividad, ActividadInput } from "@/lib/operaciones";
+import { dataRequest, esProveedorLocal } from "@/lib/data/client";
 
 type Estado = {
   actividades: Actividad[];
@@ -13,13 +13,36 @@ type Estado = {
   error: string | null;
 };
 
-async function api(metodo: "POST" | "PUT" | "DELETE", body: Record<string, unknown>) {
+const USUARIO_DEMO = "Administrador Demo";
+
+async function api(metodoRest: "POST" | "PUT" | "DELETE", body: Record<string, unknown>) {
+  if (esProveedorLocal()) {
+    const { id, ...payload } = body;
+    return dataRequest("actividades", metodoRest, { payload, id: id as string | undefined, usuario: USUARIO_DEMO });
+  }
   const res = await fetch("/api/operaciones?recurso=actividades", {
-    method: metodo,
-    headers: { "Content-Type": "application/json" },
+    method: metodoRest,
+    headers: {
+      "Content-Type": "application/json",
+      "x-usuario-rol": "administrador",
+      "x-usuario-nombre": USUARIO_DEMO,
+    },
     body: JSON.stringify(body),
   });
   return res.json().catch(() => ({ ok: false, error: "Respuesta inválida" }));
+}
+
+async function listarActividades(sedeId: string): Promise<Actividad[]> {
+  if (esProveedorLocal()) {
+    const res = await dataRequest<Actividad[]>("actividades", "GET", { filtros: { sedeId } });
+    return res && res.ok && Array.isArray(res.data) ? (res.data as Actividad[]) : [];
+  }
+  const res = await fetch(
+    "/api/operaciones?recurso=actividades&sedeId=" + encodeURIComponent(sedeId),
+    { cache: "no-store" }
+  );
+  const json = await res.json().catch(() => null);
+  return json && json.ok && Array.isArray(json.data) ? (json.data as Actividad[]) : [];
 }
 
 export function useActividadesSede(sedeId: string) {
@@ -28,10 +51,7 @@ export function useActividadesSede(sedeId: string) {
   const recargar = useCallback(async () => {
     setEstado((s) => ({ ...s, cargando: true, error: null }));
     try {
-      const res = await fetch("/api/operaciones?recurso=actividades&sedeId=" + encodeURIComponent(sedeId), { cache: "no-store" });
-      const json = await res.json().catch(() => null);
-      const todas = json && json.ok && Array.isArray(json.data) ? (json.data as Actividad[]) : [];
-      // Filtro defensivo en cliente por si el backend no aplica el filtro sedeId.
+      const todas = await listarActividades(sedeId);
       const actividades = todas.filter(
         (a) => a.SedeID === sedeId || (a.Sedes ?? "").includes(sedeId)
       );

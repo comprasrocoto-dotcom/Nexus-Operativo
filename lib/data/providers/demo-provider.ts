@@ -9,6 +9,68 @@ import { SEED_MAP } from "@/lib/data/seed/dashi-seed";
 
 type Registro = { ID: string; [k: string]: unknown };
 
+// Mapa de claves de formulario (camelCase) a campos de entidad (PascalCase).
+// Replica la normalizacion que hace Apps Script, para que Demo y Gas se comporten igual.
+const MAPA_CAMPOS: Record<string, string> = {
+  id: "ID",
+  nombre: "Nombre",
+  codigo: "Codigo",
+  descripcion: "Descripcion",
+  responsable: "Responsable",
+  administrador: "Administrador",
+  direccion: "Direccion",
+  telefono: "Telefono",
+  correo: "Correo",
+  email: "Email",
+  estado: "Estado",
+  activo: "Activo",
+  sedeId: "SedeID",
+  sedes: "Sedes",
+  entidad: "Entidad",
+  entidadId: "EntidadID",
+  modulo: "Modulo",
+  tipoEvento: "TipoEvento",
+  fecha: "Fecha",
+  fechaInicio: "FechaInicio",
+  fechaFin: "FechaFin",
+  hora: "Hora",
+  usuario: "Usuario",
+  nivel: "Nivel",
+  icono: "Icono",
+  color: "Color",
+  titulo: "Titulo",
+  tipo: "Tipo",
+  categoria: "Categoria",
+  prioridad: "Prioridad",
+  cantidad: "Cantidad",
+  unidad: "Unidad",
+  valor: "Valor",
+  total: "Total",
+  proveedor: "Proveedor",
+  observaciones: "Observaciones",
+  rol: "Rol",
+  roles: "Roles",
+  permisos: "Permisos",
+  clave: "Clave",
+  orden: "Orden",
+  url: "URL",
+  archivo: "Archivo",
+  version: "Version",
+  vigencia: "Vigencia",
+  datosAnteriores: "DatosAnteriores",
+  datosNuevos: "DatosNuevos",
+};
+
+function normalizarCampos(payload: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(payload)) {
+    if (v === undefined) continue;
+    const destino = MAPA_CAMPOS[k] ?? k.charAt(0).toUpperCase() + k.slice(1);
+    out[destino] = v;
+  }
+  return out;
+}
+
 function nuevoId(recurso: string): string {
   return `${recurso.toUpperCase()}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 }
@@ -34,7 +96,7 @@ function aplicarFiltros(items: Registro[], op: OpcionesDatos): Registro[] {
   for (const k of claves) {
     const val = String(f[k]);
     if (val === "" || val === "undefined") continue;
-    const campo = k === "sedeId" ? "SedeID" : k === "entidadId" ? "EntidadID" : k;
+    const campo = MAPA_CAMPOS[k] ?? k;
     out = out.filter((it) => {
       const v = it[campo] ?? it[k];
       if (v === undefined) return true;
@@ -116,30 +178,50 @@ export class DemoProvider implements IDataProvider {
           return item ? { ok: true, data: item as T } : { ok: false, error: "No encontrado" };
         }
         case "crear": {
-          const payload = (opciones.payload ?? {}) as Registro;
+          const payload = normalizarCampos((opciones.payload ?? {}) as Record<string, unknown>);
           const { fecha } = ahora();
           const registro: Registro = {
             ...payload,
-            ID: payload.ID ?? nuevoId(recurso),
+            ID: (payload.ID as string) ?? nuevoId(recurso),
             Activo: payload.Activo ?? true,
+            Estado: payload.Estado ?? "Activa",
             FechaCreacion: fecha,
             UsuarioCreador: usuario ?? "Administrador Demo",
-          };
+          } as Registro;
+
+          // Codigo automatico si el formulario lo deja vacio.
+          if (!String(registro.Codigo ?? "").trim()) {
+            registro.Codigo = String(registro.Nombre ?? recurso)
+              .trim()
+              .replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ0-9 ]/g, "")
+              .split(/\s+/)
+              .map((p) => p.charAt(0))
+              .join("")
+              .toUpperCase()
+              .slice(0, 4) || recurso.slice(0, 3).toUpperCase();
+          }
+
           items.unshift(registro);
           guardarColeccion(recurso, items);
           registrarEventoAuto(recurso, `${recurso.toUpperCase()}_CREADO`, registro, usuario);
-          return { ok: true, data: { id: registro.ID } as T };
+          return { ok: true, data: { id: registro.ID, ID: registro.ID } as T };
         }
         case "actualizar": {
-          const payload = (opciones.payload ?? {}) as Registro;
-          const id = payload.ID ?? (opciones.id as string);
+          const payload = normalizarCampos((opciones.payload ?? {}) as Record<string, unknown>);
+          const id = (payload.ID as string) ?? (opciones.id as string);
           const idx = items.findIndex((it) => it.ID === id);
           if (idx === -1) return { ok: false, error: "No encontrado" };
           const { fecha } = ahora();
-          items[idx] = { ...items[idx], ...payload, ID: id, FechaModificacion: fecha, UltimoEditor: usuario ?? "Administrador Demo" };
+          items[idx] = {
+            ...items[idx],
+            ...payload,
+            ID: id,
+            FechaModificacion: fecha,
+            UltimoEditor: usuario ?? "Administrador Demo",
+          };
           guardarColeccion(recurso, items);
           registrarEventoAuto(recurso, `${recurso.toUpperCase()}_ACTUALIZADO`, items[idx], usuario);
-          return { ok: true, data: { id } as T };
+          return { ok: true, data: { id, ID: id } as T };
         }
         case "eliminar": {
           const id = (opciones.payload?.id as string) ?? (opciones.id as string);
@@ -149,7 +231,7 @@ export class DemoProvider implements IDataProvider {
           items[idx] = { ...eliminado, Activo: false, Estado: "Inactiva" };
           guardarColeccion(recurso, items);
           registrarEventoAuto(recurso, `${recurso.toUpperCase()}_ELIMINADO`, eliminado, usuario);
-          return { ok: true, data: { id } as T };
+          return { ok: true, data: { id, ID: id } as T };
         }
         default:
           return { ok: false, error: "Metodo no soportado" };

@@ -1,14 +1,13 @@
 // hooks/useModulos.ts — Resuelve qué módulos (pestañas) mostrar en la Ficha de Sede.
-// Fusiona el registro local (fallback) con Op_Modulos del backend, permitiendo
-// activar/desactivar módulos y filtrar por rol SIN tocar código (data-driven).
+// Enruta por el DataProvider activo: Demo (localStorage) o Gas (API real).
 
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import type { Modulo } from "@/lib/operaciones";
 import { modulosVisibles, type DefinicionModulo } from "@/lib/sede-modulos";
+import { dataRequest, esProveedorLocal } from "@/lib/data/client";
 
-// Aplica overrides de Op_Modulos (Activo, Orden, Roles) sobre el registro local por clave.
 function fusionar(base: DefinicionModulo[], remotos: Modulo[]): DefinicionModulo[] {
   if (!remotos.length) return base;
   const porClave = new Map(remotos.map((m) => [m.Clave, m]));
@@ -30,7 +29,7 @@ function fusionar(base: DefinicionModulo[], remotos: Modulo[]): DefinicionModulo
 
 function permitidoPorRol(mod: DefinicionModulo, rol?: string): boolean {
   if (!mod.roles || !mod.roles.length) return true;
-  if (!rol) return true; // sin rol conocido, no ocultamos (placeholder de permisos)
+  if (!rol) return true;
   return mod.roles.map((r) => r.toLowerCase()).includes(rol.toLowerCase());
 }
 
@@ -43,9 +42,14 @@ export function useModulos(rol?: string) {
     let vivo = true;
     (async () => {
       try {
-        const res = await fetch("/api/operaciones?recurso=modulos", { cache: "no-store" });
-        const json = await res.json().catch(() => null);
-        if (vivo && json && json.ok && Array.isArray(json.data)) setRemotos(json.data as Modulo[]);
+        if (esProveedorLocal()) {
+          const res = await dataRequest<Modulo[]>("modulos", "GET", {});
+          if (vivo && res && res.ok && Array.isArray(res.data)) setRemotos(res.data as Modulo[]);
+        } else {
+          const res = await fetch("/api/operaciones?recurso=modulos", { cache: "no-store" });
+          const json = await res.json().catch(() => null);
+          if (vivo && json && json.ok && Array.isArray(json.data)) setRemotos(json.data as Modulo[]);
+        }
       } catch { /* fallback al registro local */ }
       if (vivo) setCargando(false);
     })();

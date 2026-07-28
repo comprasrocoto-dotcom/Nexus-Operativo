@@ -1,13 +1,12 @@
 // hooks/useEventos.ts — Lectura de eventos (Op_Eventos) para el Timeline genérico.
-// Reutilizable por cualquier entidad: Sede, Usuario, Compra, Inventario, etc.
-// Fallback elegante: si el backend no expone "eventos", devuelve lista vacía sin romper.
+// Enruta por el DataProvider activo: Demo (localStorage) o Gas (API real).
 
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
 import type { Evento } from "@/lib/operaciones";
+import { dataRequest, esProveedorLocal } from "@/lib/data/client";
 
-// Filtros genéricos del Timeline. Cualquier combinación se envía al backend como query.
 export type FiltroEventos = {
   sedeId?: string;
   entidad?: string;
@@ -38,10 +37,21 @@ export function useEventos(filtros: FiltroEventos = {}) {
   const recargar = useCallback(async () => {
     setEstado((s) => ({ ...s, cargando: true, error: null }));
     try {
-      const res = await fetch("/api/operaciones?" + construirQuery(filtros), { cache: "no-store" });
-      const json = await res.json().catch(() => null);
-      // Fallback: si el backend aún no soporta eventos, no es un error para la UI.
-      const eventos = json && json.ok && Array.isArray(json.data) ? (json.data as Evento[]) : [];
+      let eventos: Evento[] = [];
+      if (esProveedorLocal()) {
+        const { limite, ...resto } = filtros;
+        const res = await dataRequest<Evento[]>("eventos", "GET", {
+          filtros: resto,
+          ordenarPor: "Fecha",
+          orden: "desc",
+          porPagina: limite,
+        });
+        eventos = res && res.ok && Array.isArray(res.data) ? (res.data as Evento[]) : [];
+      } else {
+        const res = await fetch("/api/operaciones?" + construirQuery(filtros), { cache: "no-store" });
+        const json = await res.json().catch(() => null);
+        eventos = json && json.ok && Array.isArray(json.data) ? (json.data as Evento[]) : [];
+      }
       setEstado({ eventos, cargando: false, error: null });
     } catch {
       setEstado({ eventos: [], cargando: false, error: null });

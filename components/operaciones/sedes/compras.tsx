@@ -1,44 +1,43 @@
 "use client";
 
-import { Card, Badge, Button } from "@/components/ui";
-import { ShoppingCart, Plus, TrendingUp, Clock, History } from "lucide-react";
+import PanelRecurso, { type CampoPanel, type MetricaPanel } from "@/components/operaciones/sedes/panel-recurso";
+import type { ModuloSedeProps } from "@/lib/sede-modulos";
 
-interface ComprasProps {
-  sedeId: string;
-}
+const CAMPOS: CampoPanel[] = [
+  { clave: "Codigo", titulo: "Orden" },
+  { clave: "Nombre", titulo: "Concepto", requerido: true },
+  { clave: "Proveedor", titulo: "Proveedor" },
+  { clave: "Monto", titulo: "Monto", tipo: "numero" },
+  { clave: "Fecha", titulo: "Fecha", tipo: "fecha" },
+  { clave: "Estado", titulo: "Estado", tipo: "select", opciones: ["Pendiente", "Aprobada", "Recibida", "Anulada"], badge: true },
+];
 
-/** Pestana Compras. Estructura preparada para el futuro modulo Compras (via SedeID). */
-export function Compras({ sedeId }: ComprasProps) {
+const fmt = (n: number) => "$ " + n.toLocaleString("es-CO");
+
+const METRICAS: MetricaPanel[] = [
+  {
+    titulo: "Gasto acumulado",
+    calcular: (items) => fmt(items.reduce((a, i) => a + (Number(i.Monto) || 0), 0)),
+  },
+  {
+    titulo: "Ordenes pendientes",
+    calcular: (items) => String(items.filter((i) => String(i.Estado ?? "") === "Pendiente").length),
+  },
+  { titulo: "Ordenes totales", calcular: (items) => String(items.length) },
+];
+
+export function Compras({ sedeId }: ModuloSedeProps) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-slate-700">
-          <ShoppingCart className="h-4 w-4 text-primary" />
-          <span className="font-medium">Compras de la sede</span>
-        </div>
-        <Button className="gap-1"><Plus className="h-4 w-4" /> Nueva compra</Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-5 rounded-2xl shadow-soft">
-          <div className="flex items-center gap-2 text-slate-500 text-sm mb-2"><TrendingUp className="h-4 w-4 text-primary" /> Gasto acumulado</div>
-          <div className="text-lg font-semibold text-slate-800">S/ 0.00</div>
-        </Card>
-        <Card className="p-5 rounded-2xl shadow-soft">
-          <div className="flex items-center gap-2 text-slate-500 text-sm mb-2"><Clock className="h-4 w-4 text-primary" /> Ordenes pendientes</div>
-          <div className="text-lg font-semibold text-slate-800">0</div>
-        </Card>
-        <Card className="p-5 rounded-2xl shadow-soft">
-          <div className="flex items-center gap-2 text-slate-500 text-sm mb-2"><History className="h-4 w-4 text-primary" /> Ultima compra</div>
-          <div className="text-lg font-semibold text-slate-800">Sin registros</div>
-        </Card>
-      </div>
-
-      <Card className="p-5 rounded-2xl shadow-soft">
-        <div className="flex items-center gap-2 text-slate-700 mb-3"><History className="h-4 w-4 text-primary" /> <span className="font-medium">Historico de compras</span></div>
-        <div className="py-10 text-center text-slate-400 text-sm">Aun no hay compras registradas para esta sede.</div>
-      </Card>
-    </div>
+    <PanelRecurso
+      recurso="compras"
+      sedeId={sedeId}
+      titulo="Compras de la sede"
+      descripcion="Ordenes de compra asociadas a esta sede."
+      etiquetaNuevo="Nueva compra"
+      vacioMensaje="Aun no hay compras registradas para esta sede."
+      campos={CAMPOS}
+      metricas={METRICAS}
+    />
   );
 }
 

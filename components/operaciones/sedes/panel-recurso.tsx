@@ -67,7 +67,7 @@ export function PanelRecurso(props: PanelRecursoProps) {
   const [guardando, setGuardando] = useState(false);
   const [eliminando, setEliminando] = useState<string | null>(null);
 
-  const filtroSede = useMemo(
+  const filtroSede = useMemo<Record<string, string>>(
     () => (sedeId && sedeId !== "SEDE_TODAS" ? { sedeId } : {}),
     [sedeId],
   );
@@ -104,7 +104,8 @@ export function PanelRecurso(props: PanelRecursoProps) {
   function abrirNuevo() {
     const inicial: Record<string, string> = {};
     camposForm.forEach((c) => {
-      inicial[c.clave] = c.tipo === "select" && c.opciones && c.opciones.length ? c.opciones[0] : "";
+      const opciones = c.opciones ?? [];
+      inicial[c.clave] = c.tipo === "select" && opciones.length > 0 ? String(opciones[0]) : "";
     });
     setForm(inicial);
     setEditando(null);
@@ -142,9 +143,10 @@ export function PanelRecurso(props: PanelRecursoProps) {
     if (sedeId) datos.SedeID = sedeId;
 
     try {
-      const res = editando && editando.ID
-        ? await servicio.actualizar(String(editando.ID), datos)
-        : await servicio.crear(datos);
+      const res =
+        editando && editando.ID
+          ? await servicio.actualizar(String(editando.ID), datos)
+          : await servicio.crear(datos);
 
       if (!res || res.ok === false) {
         setError((res && res.error) || "No se pudo guardar el registro.");

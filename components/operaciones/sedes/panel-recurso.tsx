@@ -11,7 +11,6 @@ import { crudRecurso, type RegistroBase } from "@/services/crud-recurso";
  * Panel CRUD CONECTADO y generico para cualquier recurso del ERP.
  * Consume EXCLUSIVAMENTE el DataProvider activo (Demo o Gas) via services/crud-recurso.
  * No contiene fetch() ni llamadas directas al backend.
- * Crear / Editar / Eliminar / Buscar / Metricas funcionan sin backend real (DemoProvider).
  */
 
 export type TipoCampo = "texto" | "numero" | "fecha" | "hora" | "select" | "textarea";
@@ -67,10 +66,11 @@ export function PanelRecurso(props: PanelRecursoProps) {
   const [guardando, setGuardando] = useState(false);
   const [eliminando, setEliminando] = useState<string | null>(null);
 
-  const filtroSede = useMemo<Record<string, string>>(
-    () => (sedeId && sedeId !== "SEDE_TODAS" ? { sedeId } : {}),
-    [sedeId],
-  );
+  const filtroSede = useMemo(() => {
+    const f: Record<string, string> = {};
+    if (sedeId && sedeId !== "SEDE_TODAS") f.sedeId = sedeId;
+    return f;
+  }, [sedeId]);
 
   const recargar = useCallback(async () => {
     setCargando(true);

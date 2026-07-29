@@ -1,64 +1,52 @@
 "use client";
 
-import { Card, Badge, Button } from "@/components/ui";
-import { useActividadesSede } from "@/hooks/useActividadesSede";
-import { Calendar, Clock, Plus, ExternalLink } from "lucide-react";
+import PanelRecurso, { type CampoPanel, type MetricaPanel } from "@/components/operaciones/sedes/panel-recurso";
+import type { ModuloSedeProps } from "@/lib/sede-modulos";
 
-interface AgendaProps {
-  sedeId: string;
-  onVerAgenda?: () => void;
-}
+const CAMPOS: CampoPanel[] = [
+  { clave: "Fecha", titulo: "Fecha", tipo: "fecha" },
+  { clave: "HoraInicio", titulo: "Inicio", tipo: "hora" },
+  { clave: "HoraFin", titulo: "Fin", tipo: "hora" },
+  { clave: "Nombre", titulo: "Actividad", requerido: true },
+  { clave: "Tipo", titulo: "Tipo", tipo: "select", opciones: ["Operativa", "Administrativa", "Mantenimiento", "Capacitacion"], badge: true },
+  { clave: "Area", titulo: "Area", tipo: "select", opciones: ["Operaciones", "Finanzas", "Calidad", "RRHH", "Compras"] },
+  { clave: "Prioridad", titulo: "Prioridad", tipo: "select", opciones: ["Alta", "Media", "Baja"], badge: true },
+  { clave: "Estado", titulo: "Estado", tipo: "select", opciones: ["Programada", "En curso", "Completada", "Cancelada"], badge: true },
+  { clave: "Responsable", titulo: "Responsable" },
+  { clave: "Codigo", titulo: "Codigo", enTabla: false },
+];
 
-/**
- * Pestana Agenda. Muestra SOLO las actividades de esta sede.
- * Reutiliza el mismo modelo de actividades (no crea logica duplicada):
- * el hook useActividadesSede filtra la Agenda Operativa por SedeID.
- */
-export function Agenda({ sedeId, onVerAgenda }: AgendaProps) {
-  const { actividades, cargando, error } = useActividadesSede(sedeId);
+const METRICAS: MetricaPanel[] = [
+  { titulo: "Actividades", calcular: (items) => String(items.length) },
+  {
+    titulo: "Programadas",
+    calcular: (items) => String(items.filter((i) => String(i.Estado ?? "") === "Programada").length),
+  },
+  {
+    titulo: "Prioridad alta",
+    calcular: (items) => String(items.filter((i) => String(i.Prioridad ?? "") === "Alta").length),
+  },
+  {
+    titulo: "Proxima fecha",
+    calcular: (items) => {
+      const fechas = items.map((i) => String(i.Fecha ?? "")).filter(Boolean).sort();
+      return fechas.length ? fechas[0] : "Sin programar";
+    },
+  },
+];
 
+export function Agenda({ sedeId }: ModuloSedeProps) {
   return (
-    <Card className="p-5 rounded-2xl shadow-soft">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 text-slate-700">
-          <Calendar className="h-4 w-4 text-primary" />
-          <span className="font-medium">Agenda de la sede</span>
-        </div>
-        {onVerAgenda && (
-          <Button variant="secondary" onClick={onVerAgenda} className="gap-1">
-            <ExternalLink className="h-4 w-4" /> Ver Agenda
-          </Button>
-        )}
-      </div>
-
-      {error && (
-        <div className="mb-3 rounded-xl bg-danger/10 text-danger text-sm px-3 py-2">{error}</div>
-      )}
-
-      {cargando ? (
-        <div className="space-y-2">
-          {[0,1,2].map((i) => <div key={i} className="h-14 rounded-xl bg-slate-100 animate-pulse" />)}
-        </div>
-      ) : actividades.length === 0 ? (
-        <div className="py-10 text-center text-slate-400 text-sm">No hay actividades programadas para esta sede.</div>
-      ) : (
-        <ul className="space-y-2">
-          {actividades.map((a) => (
-            <li key={a.ID} className="flex items-start justify-between bg-slate-50 rounded-xl px-4 py-3">
-              <div>
-                <div className="text-sm font-medium text-slate-800">{a.Nombre}</div>
-                <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
-                  <span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" />{a.Fecha ?? "-"}</span>
-                  <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{a.HoraInicio ?? "--"} - {a.HoraFin ?? "--"}</span>
-                  {a.Area && <Badge>{a.Area}</Badge>}
-                </div>
-              </div>
-              {a.Prioridad && <Badge>{a.Prioridad}</Badge>}
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
+    <PanelRecurso
+      recurso="actividades"
+      sedeId={sedeId}
+      titulo="Agenda de la sede"
+      descripcion="Actividades programadas para esta sede."
+      etiquetaNuevo="Nueva actividad"
+      vacioMensaje="No hay actividades programadas para esta sede."
+      campos={CAMPOS}
+      metricas={METRICAS}
+    />
   );
 }
 

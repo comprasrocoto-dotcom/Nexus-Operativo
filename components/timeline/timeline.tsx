@@ -19,13 +19,19 @@ function Icono({ nombre, className }: { nombre: string; className?: string }) {
   return <Comp className={className} />;
 }
 
+// Formatea la fecha SIN instanciar Date: "2026-07-28" -> "28/07/2026".
+// Instanciar Date con un ISO corto lo interpreta como UTC y en America/Bogota
+// (UTC-5) restaba un dia a todos los eventos del ERP.
 function fechaHora(ev: Evento): string {
-  const base = ev.Fecha ? new Date(ev.Fecha) : null;
-  if (base && !isNaN(base.getTime())) {
-    const f = base.toLocaleDateString();
-    return ev.Hora ? f + " · " + ev.Hora : f;
+  const iso = String(ev.Fecha ?? "").trim();
+  const hora = String(ev.Hora ?? "").trim();
+  const partes = iso.split("-");
+  if (partes.length >= 3 && partes[0].length === 4) {
+    const dia = partes[2].slice(0, 2);
+    const texto = dia + "/" + partes[1] + "/" + partes[0];
+    return hora ? texto + " · " + hora : texto;
   }
-  return [ev.Fecha, ev.Hora].filter(Boolean).join(" · ") || "—";
+  return [iso, hora].filter(Boolean).join(" · ") || "—";
 }
 
 export function Timeline({
@@ -68,7 +74,7 @@ export function Timeline({
   return (
     <div className="relative">
       <div className="absolute left-4 top-2 bottom-2 w-px bg-slate-200 dark:bg-slate-800" aria-hidden />
-      <ol className="space-y-5">
+      <ol className="space-y-5" aria-label={titulo}>
         {eventos.map((ev) => {
           const meta = metaEvento(ev.TipoEvento);
           const color = claseColorEvento(ev.Color || meta.color);

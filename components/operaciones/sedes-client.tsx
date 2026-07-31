@@ -1,28 +1,25 @@
 "use client";
 
-import { useMemo, useState, useTransition, useEffect } from "react";
-import {
-  Building2,
-  Plus,
-  Search,
-  Pencil,
-  Power,
-  RotateCcw,
-  User,
-  CalendarDays,
-  X,
-} from "lucide-react";
-import { Badge, Button, Card, Input } from "@/components/ui";
+// sedes-client.tsx — Orquestador del modulo Sedes.
+// TODO el acceso a datos pasa por dataRequest (DataProvider activo): cero fetch(),
+// cero Apps Script y cero Route Handlers desde el componente.
+// La tabla vive en ./sedes/sedes-tabla y el formulario en ./sedes/sedes-modal.
+
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { Building2, Plus, Search } from "lucide-react";
+import { Button, Card, Input } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import type { Sede, SedeInput } from "@/lib/operaciones";
-import { dataRequest, esProveedorLocal } from "@/lib/data/client";
+import type { Sede } from "@/lib/operaciones";
+import { dataRequest } from "@/lib/data/client";
+import { SedesTabla, sedeActiva, type SedeFila } from "./sedes/sedes-tabla";
+import { SedesModal, type FormSede } from "./sedes/sedes-modal";
 
 type Filtro = "activas" | "inactivas" | "todas";
-type FormState = SedeInput & { id?: string };
+type Registro = Record<string, unknown>;
 
 const USUARIO_DEMO = "Administrador Demo";
 
-const FORM_VACIO: FormState = {
+const FORM_VACIO: FormSede = {
   nombre: "",
   codigo: "",
   descripcion: "",
@@ -34,68 +31,66 @@ const FORM_VACIO: FormState = {
   activo: true,
 };
 
-async function llamarApi(
-  metodo: "POST" | "PUT" | "DELETE",
-  body: Record<string, unknown>
-): Promise<{ ok: boolean; error?: string }> {
-  if (esProveedorLocal()) {
-    const { id, ...payload } = body;
-    return dataRequest("sedes", metodo, {
-      payload,
-      id: id as string | undefined,
-      usuario: USUARIO_DEMO,
-    });
-  }
-  const res = await fetch("/api/operaciones?recurso=sedes", {
-    method: metodo,
-    headers: {
-      "Content-Type": "application/json",
-      "x-usuario-rol": "administrador",
-      "x-usuario-nombre": USUARIO_DEMO,
-    },
-    body: JSON.stringify(body),
+async function pedirSedes(metodo: "POST" | "PUT" | "DELETE", body: Registro) {
+  const { id, ...payload } = body;
+  return dataRequest("sedes", metodo, {
+    payload,
+    id: id as string | undefined,
+    usuario: USUARIO_DEMO,
   });
-  return res.json().catch(() => ({ ok: false, error: "Respuesta invalida" }));
-}
-
-function formatFecha(valor?: string) {
-  if (!valor) return "—";
-  const d = new Date(valor);
-  return isNaN(d.getTime()) ? String(valor) : d.toLocaleDateString();
 }
 
 export function SedesClient({ sedesIniciales }: { sedesIniciales: Sede[] }) {
   const [sedes, setSedes] = useState<Sede[]>(sedesIniciales);
+  const [actividades, setActividades] = useState<Registro[]>([]);
+  const [eventos, setEventos] = useState<Registro[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("activas");
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [form, setForm] = useState<FormState>(FORM_VACIO);
+  const [form, setForm] = useState<FormSede>(FORM_VACIO);
   const [error, setError] = useState<string | null>(null);
   const [cargando, iniciar] = useTransition();
 
-  async function recargar() {
-    if (esProveedorLocal()) {
-      const res = await dataRequest<Sede[]>("sedes", "GET", { incluirInactivas: true });
-      if (res?.ok && Array.isArray(res.data)) setSedes(res.data as Sede[]);
-      return;
-    }
-    const res = await fetch("/api/operaciones?recurso=sedes", { cache: "no-store" }).catch(
-      () => null
-    );
-    if (!res) return;
-    const json = await res.json().catch(() => null);
-    if (json?.ok && Array.isArray(json.data)) setSedes(json.data as Sede[]);
-  }
+  const recargar = useCallback(async () => {
+    const [rs, ra, re] = await Promise.all([
+      dataRequest<Sede[]>("sedes", "GET", { incluirInactivas: true }),
+      dataRequest<Registro[]>("actividades", "GET", {}),
+      dataRequest<Registro[]>("eventos", "GET", {}),
+    ]);
+    if (rs?.ok && Array.isArray(rs.data)) setSedes(rs.data as Sede[]);
+    if (ra?.ok && Array.isArray(ra.data)) setActividades(ra.data as Registro[]);
+    if (re?.ok && Array.isArray(re.data)) setEventos(re.data as Registro[]);
+  }, []);
 
   useEffect(() => {
-    if (sedesIniciales.length === 0) void recargar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    void recargar();
+  }, [recargar]);
+
+  // Actividades por sede y fecha de creacion derivada del primer Op_Evento.
+  const enriquecidas = useMemo<SedeFila[]>(() => {
+    const conteo: Record<string, number> = {};
+    actividades.forEach((a) => {
+      const id = String(a.SedeID ?? "");
+      if (id) conteo[id] = (conteo[id] ?? 0) + 1;
+    });
+    const primera: Record<string, string> = {};
+    eventos.forEach((e) => {
+      const id = String(e.SedeID ?? "");
+      const f = String(e.Fecha ?? "");
+      if (!id || !f) return;
+      if (!primera[id] || f < primera[id]) primera[id] = f;
+    });
+    return sedes.map((s) => ({
+      ...s,
+      totalActividades: conteo[String(s.ID)] ?? 0,
+      creada: String(s.FechaCreacion ?? primera[String(s.ID)] ?? ""),
+    }));
+  }, [sedes, actividades, eventos]);
 
   const filtradas = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    return sedes.filter((s) => {
-      const activa = s.Activo !== false && String(s.Estado).toLowerCase() !== "inactiva";
+    return enriquecidas.filter((s) => {
+      const activa = sedeActiva(s);
       if (filtro === "activas" && !activa) return false;
       if (filtro === "inactivas" && activa) return false;
       if (!q) return true;
@@ -103,14 +98,12 @@ export function SedesClient({ sedesIniciales }: { sedesIniciales: Sede[] }) {
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
     });
-  }, [sedes, busqueda, filtro]);
+  }, [enriquecidas, busqueda, filtro]);
 
   const totales = useMemo(() => {
-    const activas = sedes.filter(
-      (s) => s.Activo !== false && String(s.Estado).toLowerCase() !== "inactiva"
-    ).length;
-    return { total: sedes.length, activas, inactivas: sedes.length - activas };
-  }, [sedes]);
+    const activas = enriquecidas.filter(sedeActiva).length;
+    return { total: enriquecidas.length, activas, inactivas: enriquecidas.length - activas };
+  }, [enriquecidas]);
 
   function abrirNueva() {
     setForm(FORM_VACIO);
@@ -144,10 +137,10 @@ export function SedesClient({ sedesIniciales }: { sedesIniciales: Sede[] }) {
     iniciar(async () => {
       const { id, ...datos } = form;
       const res = id
-        ? await llamarApi("PUT", { id, ...datos })
-        : await llamarApi("POST", datos);
-      if (!res.ok) {
-        setError(res.error || "No se pudo guardar.");
+        ? await pedirSedes("PUT", { id, ...datos })
+        : await pedirSedes("POST", datos);
+      if (!res?.ok) {
+        setError(res?.error || "No se pudo guardar.");
         return;
       }
       setModalAbierto(false);
@@ -156,12 +149,12 @@ export function SedesClient({ sedesIniciales }: { sedesIniciales: Sede[] }) {
   }
 
   function alternarActiva(s: Sede) {
-    const activa = s.Activo !== false && String(s.Estado).toLowerCase() !== "inactiva";
+    const activa = sedeActiva(s);
     iniciar(async () => {
       const res = activa
-        ? await llamarApi("DELETE", { id: s.ID })
-        : await llamarApi("PUT", { id: s.ID, activo: true, estado: "Activa" });
-      if (res.ok) await recargar();
+        ? await pedirSedes("DELETE", { id: s.ID })
+        : await pedirSedes("PUT", { id: s.ID, activo: true, estado: "Activa" });
+      if (res?.ok) await recargar();
     });
   }
 
@@ -184,7 +177,9 @@ export function SedesClient({ sedesIniciales }: { sedesIniciales: Sede[] }) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="flex flex-col gap-1 p-5">
           <span className="text-sm text-slate-500">Total de sedes</span>
-          <span className="text-2xl font-semibold text-slate-900 dark:text-white">{totales.total}</span>
+          <span className="text-2xl font-semibold text-slate-900 dark:text-white">
+            {totales.total}
+          </span>
         </Card>
         <Card className="flex flex-col gap-1 p-5">
           <span className="text-sm text-slate-500">Activas</span>
@@ -197,7 +192,7 @@ export function SedesClient({ sedesIniciales }: { sedesIniciales: Sede[] }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[220px]">
+        <div className="relative min-w-[220px] flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             value={busqueda}
@@ -215,7 +210,7 @@ export function SedesClient({ sedesIniciales }: { sedesIniciales: Sede[] }) {
                 "rounded-lg px-3 py-1.5 text-sm capitalize transition-colors",
                 filtro === f
                   ? "bg-primary text-white"
-                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
               )}
             >
               {f}
@@ -224,160 +219,20 @@ export function SedesClient({ sedesIniciales }: { sedesIniciales: Sede[] }) {
         </div>
       </div>
 
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/50">
-              <tr>
-                <th className="px-4 py-3 font-medium">Sede</th>
-                <th className="px-4 py-3 font-medium">Responsable</th>
-                <th className="px-4 py-3 font-medium">Actividades</th>
-                <th className="px-4 py-3 font-medium">Estado</th>
-                <th className="px-4 py-3 font-medium">Creada</th>
-                <th className="px-4 py-3 font-medium text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filtradas.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-slate-400">
-                    No hay sedes que coincidan.
-                  </td>
-                </tr>
-              )}
-              {filtradas.map((s) => {
-                const activa =
-                  s.Activo !== false && String(s.Estado).toLowerCase() !== "inactiva";
-                return (
-                  <tr key={s.ID} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900 dark:text-white">{s.Nombre}</div>
-                      <div className="text-xs text-slate-400">{s.Codigo}</div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                      <span className="flex items-center gap-1.5">
-                        <User className="h-3.5 w-3.5 text-slate-400" />
-                        {s.Responsable || "—"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                        <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
-                        {s.totalActividades ?? 0}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={activa ? "success" : "muted"}>
-                        {activa ? "Activa" : "Inactiva"}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-slate-500">{formatFecha(s.FechaCreacion)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => abrirEdicion(s)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => alternarActiva(s)}
-                          title={activa ? "Desactivar" : "Reactivar"}
-                        >
-                          {activa ? (
-                            <Power className="h-4 w-4 text-danger" />
-                          ) : (
-                            <RotateCcw className="h-4 w-4 text-success" />
-                          )}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <SedesTabla sedes={filtradas} onEditar={abrirEdicion} onAlternar={alternarActiva} />
 
       {modalAbierto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <Card className="w-full max-w-lg p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                {form.id ? "Editar sede" : "Nueva sede"}
-              </h2>
-              <Button variant="ghost" size="icon" onClick={() => setModalAbierto(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-                <span className="text-slate-600 dark:text-slate-300">Nombre *</span>
-                <Input
-                  value={form.nombre}
-                  onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-                  placeholder="Nombre de la sede"
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                <span className="text-slate-600 dark:text-slate-300">Codigo</span>
-                <Input
-                  value={form.codigo ?? ""}
-                  onChange={(e) => setForm({ ...form, codigo: e.target.value })}
-                  placeholder="Se genera si lo dejas vacio"
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                <span className="text-slate-600 dark:text-slate-300">Telefono</span>
-                <Input
-                  value={form.telefono ?? ""}
-                  onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                <span className="text-slate-600 dark:text-slate-300">Responsable</span>
-                <Input
-                  value={form.responsable ?? ""}
-                  onChange={(e) => setForm({ ...form, responsable: e.target.value })}
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                <span className="text-slate-600 dark:text-slate-300">Administrador</span>
-                <Input
-                  value={form.administrador ?? ""}
-                  onChange={(e) => setForm({ ...form, administrador: e.target.value })}
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-                <span className="text-slate-600 dark:text-slate-300">Direccion</span>
-                <Input
-                  value={form.direccion ?? ""}
-                  onChange={(e) => setForm({ ...form, direccion: e.target.value })}
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-                <span className="text-slate-600 dark:text-slate-300">Descripcion</span>
-                <Input
-                  value={form.descripcion ?? ""}
-                  onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
-                />
-              </label>
-            </div>
-
-            {error && <p className="mt-3 text-sm text-danger">{error}</p>}
-
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setModalAbierto(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={guardar} disabled={cargando}>
-                {cargando ? "Guardando..." : form.id ? "Guardar cambios" : "Crear sede"}
-              </Button>
-            </div>
-          </Card>
-        </div>
+        <SedesModal
+          form={form}
+          error={error}
+          cargando={cargando}
+          onCambio={(parche) => setForm((f) => ({ ...f, ...parche }))}
+          onCerrar={() => setModalAbierto(false)}
+          onGuardar={guardar}
+        />
       )}
     </div>
   );
 }
+
+export default SedesClient;

@@ -1,6 +1,6 @@
 // campo-tipos.ts — Contratos y utilidades puras de los campos del PanelRecurso.
 // Sin JSX ni estado: lo consumen campo-celda.tsx, campo-panel.tsx y panel-recurso.tsx.
-// No contiene fetch() ni conoce el DataProvider.
+// No contiene llamadas al backend ni conoce el DataProvider.
 
 import type { RegistroBase } from "@/services/crud-recurso";
 
@@ -30,6 +30,7 @@ export interface CampoPanel {
   soloLectura?: boolean;
   placeholder?: string;
   acepta?: string;
+  badge?: boolean;
 }
 
 export interface MetricaPanel {

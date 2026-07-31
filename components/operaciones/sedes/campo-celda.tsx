@@ -52,6 +52,14 @@ export function CeldaValorPanel({ campo, fila, campoEtiqueta }: CeldaValorPanelP
     );
   }
 
+  if (campo.badge || campo.tipo === "select" || /estado/i.test(campo.clave)) {
+    return <InsigniaPanel texto={valor} />;
+  }
+
+  if (campo.tipo === "booleano") {
+    return <InsigniaPanel texto={valor === "true" || valor === "Si" ? "Si" : "No"} />;
+  }
+
   if (campo.tipo === "fecha") {
     return <span className="whitespace-nowrap tabular-nums">{fechaCorta(valor)}</span>;
   }
@@ -70,14 +78,6 @@ export function CeldaValorPanel({ campo, fila, campoEtiqueta }: CeldaValorPanelP
         {valor}
       </span>
     );
-  }
-
-  if (campo.tipo === "booleano") {
-    return <InsigniaPanel texto={valor === "true" || valor === "Si" ? "Si" : "No"} />;
-  }
-
-  if (campo.tipo === "select" || /estado/i.test(campo.clave)) {
-    return <InsigniaPanel texto={valor} />;
   }
 
   if (campo.tipo === "url" || /^https?:\/\//i.test(valor)) {
